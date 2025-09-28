@@ -1,4 +1,5 @@
 const axios = require('axios');
+const express = require('express');
 require('dotenv').config();
 
 class GitHubRepoMapper {
@@ -51,6 +52,10 @@ class GitHubRepoMapper {
   }
 }
 
+// Create Express app
+const app = express();
+const PORT = process.env.PORT || 3000;
+
 // Safe usage with environment variable
 const token = process.env.GITHUB_TOKEN;
 if (!token) {
@@ -59,9 +64,41 @@ if (!token) {
 }
 
 const mapper = new GitHubRepoMapper(token, '0akd', 'coursemission');
+
+// API endpoint to get files
+app.get('/files', async (req, res) => {
+  try {
+    const fileMap = await mapper.getAllFiles();
+    res.json({
+      count: Object.keys(fileMap).length,
+      files: fileMap
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'GitHub Repo Mapper API',
+    endpoints: {
+      '/files': 'GET all files from the repository'
+    }
+  });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Visit http://localhost:${PORT} to test the API`);
+});
+
+// Optional: Preload files on startup
+// Optional: Preload files on startup
 mapper.getAllFiles().then(fileMap => {
-  console.log('Found files:', Object.keys(fileMap).length);
-  console.log(JSON.stringify(fileMap, null, 2));
+  console.log('Preloaded files:', Object.keys(fileMap).length);
+  console.log('File details:', JSON.stringify(fileMap, null, 2));  // Add this line
 }).catch(error => {
-  console.error('Error:', error.message);
+  console.error('Error preloading files:', error.message);
 });
